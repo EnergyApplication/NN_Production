@@ -32,6 +32,7 @@ def get_predictedflagvalues(datatoworkon):
 def put_flagvaluestodb(flagvalues):
     return 'successfully sent the flag data to the database'
 
+# gets sensor data and flag status for each sensor for each tower-->output table
 def singletowerMCP(towername):
     imp.intialize(towername)
     tower      = mettower(imp.DataAssetid,towername,imp.Sensor,imp.column)
@@ -47,6 +48,7 @@ def singletowerMCP(towername):
         tower_id  = tower.dataassetid
         sensor_id = anemo.sensorid
 
+        # dataset features
         anemo_coloc          = sensors[anemo.coloc_idx] # colocatd sensor
         anemo_data_avg       = sen_data[:,anemo.Avgid] # anemometer average wind speed data
         anemo_data_sd        = sen_data[:,anemo.SDid] # sd data
@@ -79,16 +81,19 @@ def singletowerMCP(towername):
 
 
 def send_data(child_conn):
+    # returns names of all towers
     q      = "SELECT Name FROM [AssetDB].[dbo].[SortRef]"
     towers = [x[0] for x in cursor.execute(q).fetchall()]
 
     number_of_towers = len(towers)
+    
+    #communicates through pipe with predict.py, where number_of_towers is received
     child_conn.send(number_of_towers)
 
     for t in towers:
         try:
         	tower_data = singletowerMCP(t)
-        	child_conn.send((tower_data,0))
+        	child_conn.send((tower_data,0))    #sends the tower ID itself through pipe to predict.py?
         except:
             bad_data_tower = (t,1)
             child_conn.send(bad_data_tower)
